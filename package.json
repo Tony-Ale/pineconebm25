@@ -1,0 +1,30 @@
+{
+  "name": "pineconebm25",
+  "version": "1.0.1",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "murmurhash-js": "^1.0.0",
+    "natural": "^8.0.1",
+    "node-fetch": "^3.3.2",
+    "snowball-stemmers": "^0.6.0",
+    "stopword": "^3.1.4"
+  },
+  "devDependencies": {
+    "@types/stopword": "^2.0.3",
+    "@types/murmurhash-js": "^1.0.6",
+    "@types/node": "^22.10.5",
+    "@types/snowball-stemmers": "^0.6.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Tony-Ale/pineconebm25"
+  }
+}

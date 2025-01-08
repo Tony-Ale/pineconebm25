@@ -1,0 +1,27 @@
+
+// gotten from snowball-stemmers compatible languages
+export const languageToIso6393_map: { [key: string]: string } = {
+    arabic: 'ara',
+    armenian: 'hye',
+    basque: 'eus',
+    catalan: 'cat',
+    czech: 'ces',
+    danish: 'dan',
+    dutch: 'nld',
+    english: 'eng',
+    finnish: 'fin',
+    french: 'fra',
+    german: 'deu',
+    hungarian: 'hun',
+    italian: 'ita',
+    irish: 'gle',
+    norwegian: 'nor',
+    portuguese: 'por',
+    romanian: 'ron',
+    russian: 'rus',
+    spanish: 'spa',
+    slovene: 'slv',
+    swedish: 'swe',
+    tamil: 'tam',
+    turkish: 'tur',
+};
