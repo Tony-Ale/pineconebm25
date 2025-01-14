@@ -1,8 +1,8 @@
-import { BM25Tokenizer } from './bm25Tokenizer'; // Adjust the path as necessary
-import * as murmurhash from 'murmurhash-js';
-import fs from 'fs/promises';
-import path from 'path';
-import fetch from 'node-fetch';
+import { BM25Tokenizer } from "./bm25Tokenizer";
+import * as murmurhash from "murmurhash-js";
+import fs from "fs/promises";
+import path from "path";
+import fetch from "node-fetch";
 
 // Define interfaces for SparseVector
 export interface SparseVector {
@@ -42,17 +42,20 @@ export class BM25Encoder {
   // Function to check if a file exists
   static async fileExists(filePath: string): Promise<boolean> {
     try {
-        await fs.access(filePath);
-        return true;
+      await fs.access(filePath);
+      return true;
     } catch {
-        return false;
+      return false;
     }
-  }   
+  }
 
   // Fit BM25 to a corpus
   fit(corpus: string[]): this {
     // TODO is .every efficient? or i should just check per iteration in the loop
-    if (!Array.isArray(corpus) || !corpus.every(doc => typeof doc === 'string')) {
+    if (
+      !Array.isArray(corpus) ||
+      !corpus.every((doc) => typeof doc === "string")
+    ) {
       throw new Error("corpus must be a list of strings");
     }
 
@@ -83,10 +86,10 @@ export class BM25Encoder {
       throw new Error("BM25 must be fit before encoding documents");
     }
 
-    if (typeof texts === 'string') {
+    if (typeof texts === "string") {
       return this._encodeSingleDocument(texts);
     } else if (Array.isArray(texts)) {
-      return texts.map(text => this._encodeSingleDocument(text));
+      return texts.map((text) => this._encodeSingleDocument(text));
     } else {
       throw new Error("texts must be a string or list of strings");
     }
@@ -98,10 +101,10 @@ export class BM25Encoder {
       throw new Error("BM25 must be fit before encoding queries");
     }
 
-    if (typeof texts === 'string') {
+    if (typeof texts === "string") {
       return this._encodeSingleQuery(texts);
     } else if (Array.isArray(texts)) {
-      return texts.map(text => this._encodeSingleQuery(text));
+      return texts.map((text) => this._encodeSingleQuery(text));
     } else {
       throw new Error("texts must be a string or list of strings");
     }
@@ -111,28 +114,34 @@ export class BM25Encoder {
   private _encodeSingleDocument(text: string): SparseVector {
     const { indices, tf } = this._tf(text);
     const tfSum = tf.reduce((acc, val) => acc + val, 0);
-    if (this.avgdl == null){
-        throw new Error("avgdl is null this is possibly due to not calling the fiit function first")
+    if (this.avgdl == null) {
+      throw new Error(
+        "avgdl is null this is possibly due to not calling the fiit function first"
+      );
     }
-    const tfNormed = tf.map(t => t / (this.k1 * (1 - this.b + this.b * (tfSum / this.avgdl!)) + t));
-    
+    const tfNormed = tf.map(
+      (t) => t / (this.k1 * (1 - this.b + this.b * (tfSum / this.avgdl!)) + t)
+    );
+
     return { indices, values: tfNormed };
   }
 
   // Encode a single query
   private _encodeSingleQuery(text: string): SparseVector {
     const { indices, tf } = this._tf(text);
-    const df = indices.map(idx => this.doc_freq?.[idx] ?? 1);
-    if (this.n_docs == null){
-        throw new Error("The number of documents is null, this is possibly due to not calling the fit function first");
+    const df = indices.map((idx) => this.doc_freq?.[idx] ?? 1);
+    if (this.n_docs == null) {
+      throw new Error(
+        "The number of documents is null, this is possibly due to not calling the fit function first"
+      );
     }
-    const idf = df.map(d => Math.log((this.n_docs! + 1) / (d + 0.5)));
-    const idfNorm = idf.map(v => v / idf.reduce((acc, val) => acc + val, 0));
+    const idf = df.map((d) => Math.log((this.n_docs! + 1) / (d + 0.5)));
+    const idfNorm = idf.map((v) => v / idf.reduce((acc, val) => acc + val, 0));
     return { indices, values: idfNorm };
   }
 
   // Dump parameters to a JSON file
-  async dump(path: string){
+  async dump(path: string) {
     if (this.doc_freq === null || this.n_docs === null || this.avgdl === null) {
       throw new Error("BM25 must be fit before storing params");
     }
@@ -143,7 +152,7 @@ export class BM25Encoder {
 
   // Load parameters from a JSON file
   async load(path: string) {
-    const params = JSON.parse(await fs.readFile(path, 'utf-8'));
+    const params = JSON.parse(await fs.readFile(path, "utf-8"));
     return this.setParams(params);
   }
 
@@ -151,7 +160,7 @@ export class BM25Encoder {
   getParams(): {
     avgdl: number;
     n_docs: number;
-    doc_freq: { indices: number[], values: number[] };
+    doc_freq: { indices: number[]; values: number[] };
     b: number;
     k1: number;
     lower_case: boolean;
@@ -163,15 +172,18 @@ export class BM25Encoder {
     if (this.doc_freq === null || this.n_docs === null || this.avgdl === null) {
       throw new Error("BM25 must be fit before storing params");
     }
-    //TODO: is there a need to sort?
-    const docFreqPairs = Object.entries(this.doc_freq).map(([idx, val]) => ({ idx: parseInt(idx), val }));
-    const sortedPairs = docFreqPairs.sort((a, b) => a.idx - b.idx);
+    
+    const docFreqPairs = Object.entries(this.doc_freq).map(([idx, val]) => ({
+      idx: parseInt(idx),
+      val,
+    }));
+    
     return {
       avgdl: this.avgdl,
       n_docs: this.n_docs,
       doc_freq: {
-        indices: sortedPairs.map(p => p.idx),
-        values: sortedPairs.map(p => p.val)
+        indices: docFreqPairs.map((p) => p.idx),
+        values: docFreqPairs.map((p) => p.val),
       },
       b: this.b,
       k1: this.k1,
@@ -179,7 +191,7 @@ export class BM25Encoder {
       remove_punctuation: this._tokenizer.removePunctuation,
       remove_stopwords: this._tokenizer.removeStopwords,
       stem: this._tokenizer.stem,
-      language: this._tokenizer.language
+      language: this._tokenizer.language,
     };
   }
 
@@ -187,7 +199,7 @@ export class BM25Encoder {
   setParams(params: {
     avgdl: number;
     n_docs: number;
-    doc_freq: { indices: number[], values: number[] };
+    doc_freq: { indices: number[]; values: number[] };
     b: number;
     k1: number;
     lower_case: boolean;
@@ -204,7 +216,7 @@ export class BM25Encoder {
     }, {} as { [key: number]: number });
     this.b = params.b;
     this.k1 = params.k1;
-    
+
     this._tokenizer = new BM25Tokenizer(
       params.lower_case,
       params.remove_punctuation,
@@ -214,87 +226,62 @@ export class BM25Encoder {
     );
     return this;
   }
-    // using https version
-  /*static async defaultsss(): Promise<BM25Encoder> {
+  
+  static async default(filepath: string = ""): Promise<BM25Encoder> {
+    // if filepath, then it makes the data persistent to that path, downloads data to the path if needed
     const bm25 = new BM25Encoder();
-    const url = "https://storage.googleapis.com/pinecone-datasets-dev/bm25_params/msmarco_bm25_params_v4_0_0.json";
-    const tempDir = fs.mkdtempSync('bm25_params_');
-    const tempPath = `${tempDir}/msmarco_bm25_params.json`;
-
-    try {
-        await new Promise((resolve, reject) => {
-            const fileStream = fs.createWriteStream(tempPath);
-            https.get(url, (res) => {
-                res.pipe(fileStream);
-                fileStream.on('finish', () => {
-                    fileStream.close(() => resolve(null));
-                });
-            }).on('error', reject);
-        });
-
-        bm25.load(tempPath);
-    } catch (error) {
-        console.error('Error during BM25 initialization:', error);
-    } finally {
-        try {
-            fs.rmSync(tempDir, { recursive: true, force: true });
-        } catch (cleanupError) {
-            console.error('Error during cleanup:', cleanupError);
-        }
-    }
-
-    return bm25;
-}*/
-static async default(filepath:string=''): Promise<BM25Encoder> {
-    // if filepath, then it makes the data persistent to that path, downloads data to the path if needed 
-    const bm25 = new BM25Encoder();
-    const url = "https://storage.googleapis.com/pinecone-datasets-dev/bm25_params/msmarco_bm25_params_v4_0_0.json";
-    let tempDir:string;
-    let tempPath:string;
+    const url =
+      "https://storage.googleapis.com/pinecone-datasets-dev/bm25_params/msmarco_bm25_params_v4_0_0.json";
+    let tempDir: string;
+    let tempPath: string;
 
     // check if filepath is provided
-    if (filepath){
-        const valid = await BM25Encoder.fileExists(path.resolve(filepath))
-        if (valid){
-            await bm25.load(filepath)
-            return bm25
-        }else{
-            const dirExists = await BM25Encoder.fileExists(path.dirname(filepath))
-            if (!dirExists){
-                await fs.mkdir(path.resolve(path.dirname(filepath)))
-            }
-            tempPath = path.resolve(filepath);
-        }
-    }else{
-        // create a temporary directory if no filepath 
-        tempDir = await fs.mkdtemp('bm25_params_');
-        tempPath = path.join(tempDir, 'msmarco_bm25_params.json');
+    if (filepath) {
+      if (path.extname(filepath).toLowerCase() !== ".json") {
+        throw new Error("File is not a JSON file.");
+      }
 
+      const valid = await BM25Encoder.fileExists(path.resolve(filepath));
+      if (valid) {
+        await bm25.load(filepath);
+        return bm25;
+      } else {
+        const dirExists = await BM25Encoder.fileExists(path.dirname(filepath));
+        if (!dirExists) {
+          await fs.mkdir(path.resolve(path.dirname(filepath)));
+        }
+        tempPath = path.resolve(filepath);
+      }
+    } else {
+      // create a temporary directory if no filepath
+      tempDir = await fs.mkdtemp("bm25_params_");
+      tempPath = path.join(tempDir, "msmarco_bm25_params.json");
     }
 
     try {
-        // Download the file from the URL to the path
-        const response = await fetch(url); 
-        const data = await response.text();
-        await fs.writeFile(tempPath, data);
+      // Download the file from the URL to the path
+      console.log("Downloading default params");
+      const response = await fetch(url);
+      const data = await response.text();
+      await fs.writeFile(tempPath, data);
 
-        // Load the BM25 parameters
-        await bm25.load(tempPath);
+      // Load the BM25 parameters
+      await bm25.load(tempPath);
     } catch (error) {
-        console.error('Error during BM25 initialization:', error);
+      console.error("Error during BM25 initialization:", error);
     } finally {
-        // Cleanup temporary files if filepath was not provided
-        if (!filepath){
-            try {
-                await fs.rm(tempDir!, { recursive: true, force: true });
-            } catch (cleanupError) {
-                console.error('Error during cleanup:', cleanupError);
-            }
+      // Cleanup temporary files if filepath was not provided
+      if (!filepath) {
+        try {
+          await fs.rm(tempDir!, { recursive: true, force: true });
+        } catch (cleanupError) {
+          console.error("Error during cleanup:", cleanupError);
         }
+      }
     }
 
     return bm25;
-}
+  }
 
   // Hash text using MurmurHash3
   private static _hashText(token: string): number {
@@ -302,16 +289,16 @@ static async default(filepath:string=''): Promise<BM25Encoder> {
   }
 
   // Calculate term frequency
-  private _tf(text: string): { indices: number[], tf: number[] } {
+  private _tf(text: string): { indices: number[]; tf: number[] } {
     const tokens = this._tokenizer.tokenize(text);
-    const counts: { [key: number]: number } = {};
+    const counts:Map<number, number> = new Map()
 
     for (const token of tokens) {
       const idx = BM25Encoder._hashText(token);
-      counts[idx] = (counts[idx] || 0) + 1;
+      counts.set(idx, (counts.get(idx) || 0) + 1);
     }
-    const indices = Object.keys(counts).map(idx => parseInt(idx));
-    const tf = indices.map(idx => counts[idx]);
+    const indices = Array.from(counts.keys())
+    const tf = indices.map((idx) => counts.get(idx)!);
     return { indices, tf };
   }
 }

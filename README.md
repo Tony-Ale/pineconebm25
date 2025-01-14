@@ -50,9 +50,17 @@ console.log("\nQuery sparse vector", query_sparse_vector);
 #### Load Default Parameters
 If you want to use the default parameters for `BM25Encoder`, you can call the `default` method.
 The default parameters were fitted on the [MS MARCO](https://microsoft.github.io/msmarco/)  passage ranking dataset.
+The default params are sourced from [DEFAULT PARAMS](https://storage.googleapis.com/pinecone-datasets-dev/bm25_params/msmarco_bm25_params_v4_0_0.json)
+To use a custom set of parameters, ensure they follow the same format.
 ```js
 import { BM25Encoder } from "pineconebm25";
 (async ()=>{
+    /*
+    A file path can be provided to persist the default parameters locally. 
+   If the specified file does not exist, the default parameters will be 
+   downloaded automatically and saved to the provided path.
+   e.g await BM25Encoder.default("./data/msmarco_params.json")
+    */
     const bm25 = await BM25Encoder.default(); // include filepath to make default params persistent
     console.log("\nEncoded Doc using default params:", bm25.encodeDocuments("The brown fox is quick"));
 })();
